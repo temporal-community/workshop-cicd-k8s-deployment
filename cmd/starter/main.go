@@ -28,9 +28,6 @@ func main() {
 	if *tag == "" {
 		*tag = "v1.0.0"
 	}
-	if *registryURL == "" {
-		*registryURL = os.Getenv("REGISTRY_URL")
-	}
 
 	// Create Temporal client
 	c, err := client.Dial(client.Options{

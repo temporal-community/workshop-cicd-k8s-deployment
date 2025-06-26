@@ -65,7 +65,7 @@ git checkout demo1-basic-pipeline
 
 3. In another terminal, trigger the workflow:
    ```bash
-   go run cmd/starter/main.go -action=create -image=demo-app -tag=v1.0.0 -dockerfile=sample-app/Dockerfile
+   go run cmd/starter/main.go -image=demo-app -tag=v1.0.0 -dockerfile=sample-app/Dockerfile -registry=registry.digitalocean.com/ziggys-container
    ```
 
 4. Open Temporal UI: http://localhost:8233
@@ -77,12 +77,6 @@ git checkout demo1-basic-pipeline
    # Set environment variable to simulate failures
    export SIMULATE_DOCKER_FAILURE=true
    go run cmd/starter/main.go -action=create -image=demo-app -tag=v1.0.1
-   ```
-
-7. Show custom Dockerfile usage:
-   ```bash
-   # Use custom Dockerfile path
-   go run cmd/starter/main.go -action=create -image=demo-app -tag=v1.0.2 
    ```
 
 ### Demo 2: Human Approval Integration (15 minutes)

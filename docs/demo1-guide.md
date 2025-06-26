@@ -47,24 +47,7 @@ Worker listening on task queue: cicd-task-queue
 
 Basic usage:
 ```bash
-go run cmd/starter/main.go -image=demo-app -tag=v1.0.0
-```
-
-With custom registry:
-```bash
-export REGISTRY_URL=registry.digitalocean.com/workshop
-go run cmd/starter/main.go -image=demo-app -tag=v1.0.0
-```
-
-With custom Dockerfile:
-```bash
-go run cmd/starter/main.go -image=demo-app -tag=v1.0.0 -dockerfile=docker/Dockerfile.prod
-```
-
-All options combined:
-```bash
-export REGISTRY_URL=registry.digitalocean.com/workshop
-go run cmd/starter/main.go -image=demo-app -tag=v1.0.0 -context=./my-app -dockerfile=build/Dockerfile
+go run cmd/starter/main.go -image=demo-app -tag=v1.0.0 -dockerfile=sample-app/Dockerfile -registry=registry.digitalocean.com/ziggys-container
 ```
 
 ### Step 3: View in Temporal UI
