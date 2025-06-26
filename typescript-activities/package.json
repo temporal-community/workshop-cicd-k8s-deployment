@@ -1,0 +1,32 @@
+{
+  "name": "temporal-approval-activities",
+  "version": "1.0.0",
+  "description": "TypeScript implementation of approval activities for Temporal CI/CD workshop",
+  "main": "lib/worker.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node lib/worker.js",
+    "dev": "ts-node src/worker.ts",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf lib"
+  },
+  "keywords": ["temporal", "cicd", "typescript", "activities"],
+  "author": "Temporal Community",
+  "license": "MIT",
+  "dependencies": {
+    "@temporalio/worker": "^1.10.1",
+    "@temporalio/activity": "^1.10.1",
+    "@temporalio/common": "^1.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "eslint": "^8.56.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,48 @@
+[project]
+name = "temporal-kubernetes-activities"
+version = "1.0.0"
+description = "Python implementation of Kubernetes activities for Temporal CI/CD workshop"
+authors = [
+    {name = "Temporal Community", email = "community@temporal.io"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["temporal", "cicd", "python", "kubernetes", "activities"]
+license = {text = "MIT"}
+dependencies = [
+    "temporalio>=1.6.0",
+    "typing-extensions>=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[project.scripts]
+worker = "src.worker:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.8"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
