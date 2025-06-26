@@ -206,6 +206,29 @@ func deployToProduction(ctx workflow.Context, logger log.Logger, fullImagePath, 
 		logger.Info("Phase 5: Starting durable timer demonstration (30 seconds)")
 		logger.Info("This timer demonstrates Temporal's durability - it will survive worker crashes and continue exactly where it left off.")
 
+		// Log validation instructions
+		validationMessage := fmt.Sprintf(`
+==================================================
+VALIDATION REQUIRED - Production Deployment Timer
+==================================================
+Production deployment is live - validation timer started (30 seconds)
+Please validate the deployment within 30 seconds to prevent automatic rollback
+
+To validate deployment:
+  go run cmd/starter/main.go -action=validate -workflow=%s -validator="your-name" -reason="validation-reason"
+
+To check deployment status:
+  kubectl get deployments -n production
+
+To check workflow status:
+  go run cmd/starter/main.go -action=status -workflow=%s
+==================================================
+`,
+			workflow.GetInfo(ctx).WorkflowExecution.ID,
+			workflow.GetInfo(ctx).WorkflowExecution.ID)
+
+		logger.Info(validationMessage)
+
 		// Start 30-second timer to demonstrate durability
 		timer := workflow.NewTimer(ctx, 30*time.Second)
 
@@ -241,31 +264,30 @@ func deployToProduction(ctx workflow.Context, logger log.Logger, fullImagePath, 
 		// Handle what happened
 		if timerExpired && !validationReceived {
 			logger.Info("Timer expired - no validation signal received, initiating rollback")
-			
+
 			// Execute rollback activity
 			rollbackReq := shared.RollbackDeploymentRequest{
 				Environment: "production",
 				Reason:      "Validation timeout after 30 seconds",
 				Timestamp:   workflow.Now(ctx),
 			}
-			
+
 			var rollbackResp shared.RollbackDeploymentResponse
 			err := workflow.ExecuteActivity(ctx, "RollbackDeployment", rollbackReq).Get(ctx, &rollbackResp)
 			if err != nil {
 				logger.Error("Failed to rollback deployment", "error", err)
 				return fmt.Errorf("rollback failed: %w", err)
 			}
-			
-			logger.Info("Rollback completed successfully", 
-				"success", rollbackResp.Success, 
+
+			logger.Info("Rollback completed successfully",
+				"success", rollbackResp.Success,
 				"message", rollbackResp.Message)
 		} else if validationReceived {
 			logger.Info("Timer was canceled by validation signal - demonstrating signal handling")
 		}
-		
+
 		logger.Info("Durable timer demonstration completed")
 	}
 
 	return nil
 }
-
