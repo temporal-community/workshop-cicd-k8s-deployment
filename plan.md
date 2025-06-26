@@ -30,15 +30,13 @@ Platform engineers familiar with Docker, Kubernetes, and CI/CD concepts but new 
 
 ## Project Structure & Git Branching Strategy
 
-### Main Repository Structure
+### Final Project Structure when completed
 ```
 temporal-cicd-workshop/
 ├── README.md                           # Quick start with branch navigation
-├── WORKSHOP_GUIDE.md                  # Step-by-step demo instructions
 ├── setup/
-│   ├── docker-compose.yml             # Temporal server + dependencies
 │   ├── setup-k8s.sh                   # Kubernetes namespace setup
-│   └── cleanup.sh                     # Demo cleanup script
+│   └── cleanup.sh                     # Cleanup script
 ├── sample-app/                        # Application to deploy
 │   ├── Dockerfile
 │   ├── main.go                        # Simple HTTP server
@@ -53,22 +51,27 @@ temporal-cicd-workshop/
 │   ├── types.go                       # Workflow/activity request/response types
 │   └── utils.go                       # Helper functions
 ├── workflows/                         # Evolves across branches
-│   └── pipeline.go                    # Main workflow (changes per demo)
+│   └── pipeline.go                    # Main workflow (changes per part)
 ├── activities/                        # Grows with each branch
 │   ├── docker.go                      # Present in all branches
-│   ├── kubernetes.go                  # Added in demo2+
-│   ├── approval.go                    # Added in demo2+
-│   ├── monitoring.go                  # Added in demo3+
-│   ├── python/                        # Added in demo5
+│   ├── kubernetes.go                  # Added in part-2+
+│   ├── approval.go                    # Added in part-2+
+│   ├── monitoring.go                  # Added in part-3+
+│   ├── python/                        # Added in part-5
 │   │   ├── test_runner.py
 │   │   └── security_scan.py
-│   └── nodejs/                        # Added in demo5
+│   └── nodejs/                        # Added in part-5
 │       ├── notifications.js
 │       └── monitoring.js
-├── workers/                           # Single worker, polyglot in demo5
+├── python-code/                       # Python Activities and Worker implementation for polyglot (part-5 only)
+│   ├── activities.py                  # Python Activities (part-5 only)
+│   └── worker.py                      # Python Worker (part-5 only)
+├── typescript-code/                   # TypeScript Activities and Worker implementation for polyglot (part-5 only)
+│   ├── activities.js                  # TypeScript Activities (part-5 only)
+│   └── worker.js                      # TypeScript Worker (part-5 only)
+├── workers/                           # Single worker, polyglot in part-5
 │   ├── main.go                        # Go worker (all branches)
-│   ├── main.py                        # Python worker (demo5 only)
-│   └── main.js                        # Node.js worker (demo5 only)
+│  
 ├── cmd/
 │   ├── starter/main.go                # CLI starter (evolves each branch)
 │   └── tools/                         # Demo utilities
@@ -76,30 +79,30 @@ temporal-cicd-workshop/
 │       ├── status.go
 │       └── cleanup.go
 └── docs/
-    ├── demo1-guide.md                 # Branch-specific instructions
-    ├── demo2-guide.md
-    ├── demo3-guide.md
-    ├── demo4-guide.md
-    └── demo5-guide.md
+    ├── part-1-guide.md                 # Branch-specific instructions
+    ├── part-2-guide.md
+    ├── part-3-guide.md
+    ├── part-4-guide.md
+    └── part-5-guide.md
 ```
 
 ### Git Branch Strategy
 ```
 main (setup + foundation)
-├── demo1-basic-pipeline
-├── demo2-human-approval
-├── demo3-production-features  
-├── demo4-crash-resilience (tag pointing to demo1)
-└── demo5-polyglot-finale
+├── part-1-basic-pipeline
+├── part-2-human-in-the-loop
+├── part-3-production-features  
+├── part-4-crash-resilience (tag pointing to part-1)
+└── part-5-polyglot-finale
 ```
 
 **Branch Progression**:
 - **main**: Foundation setup, sample app, basic project structure
-- **demo1-basic-pipeline**: Basic Docker pipeline workflow + activities
-- **demo2-human-approval**: Adds Kubernetes deployment + approval workflow
-- **demo3-production-features**: Adds timers, scheduling, health checks
-- **demo4-crash-resilience**: Git tag pointing to demo1 (for clean crash demo)
-- **demo5-polyglot-finale**: Complete rewrite with multi-language workers
+- **part-1-basic-pipeline**: Basic Docker pipeline workflow + activities
+- **part-2-human-in-the-loop**: Adds Kubernetes deployment + approval workflow
+- **part-3-production-features**: Adds timers, scheduling, health checks
+- **part-4-crash-resilience**: Git tag pointing to part-1 (for clean crash demo)
+- **part-5-polyglot-finale**: Complete rewrite with multi-language workers
 
 ---
 
@@ -117,7 +120,7 @@ git init
 
 **Context for Claude Code**:
 > Initialize the main branch with the complete workshop foundation. This will be the base that all other branches build upon. Create:
-> 1. docker-compose.yml for Temporal server + PostgreSQL + UI
+> 1. Temporal CLI provides a development server for running Temporal Workflows
 > 2. Kubernetes setup scripts for staging/production namespaces  
 > 3. Sample Go application with health endpoints and tests
 > 4. Dockerfile and K8s manifests for the sample app
@@ -129,12 +132,12 @@ git init
 **Context for Claude Code**:
 > Create a WORKSHOP_GUIDE.md that explains how to navigate between branches for each demo. Include git commands and what each branch demonstrates. This will be the instructor's guide for delivering the workshop.
 
-### Phase 2: Demo 1 Branch (demo1-basic-pipeline) - 90 minutes
+### Phase 2: Part 1 Branch (part-1-basic-pipeline) - 90 minutes
 **Goal**: Implement basic Docker build pipeline
 
 #### 2.1 Branch from Main
 ```bash
-git checkout -b demo1-basic-pipeline
+git checkout -b part-1-basic-pipeline
 ```
 
 **Context for Claude Code**:
@@ -143,54 +146,54 @@ git checkout -b demo1-basic-pipeline
 > 2. **activities/docker.go**: Docker build, test, and registry push activities
 > 3. **workers/main.go**: Worker that registers Docker activities
 > 4. **cmd/starter/main.go**: CLI to trigger basic pipeline workflows
-> 5. **docs/demo1-guide.md**: Instructions for this specific demo
+> 5. **docs/part-1-guide.md**: Instructions for this specific demo
 
 > Focus on simplicity and clear demonstration of Temporal basics. Include comprehensive logging and error handling to make the demo engaging.
 
-### Phase 3: Demo 2 Branch (demo2-human-approval) - 60 minutes  
+### Phase 3: Part 2 Branch (part-2-human-in-the-loop) - 60 minutes  
 **Goal**: Add Kubernetes deployment with human approval gates
 
-#### 3.1 Branch from Demo 1
+#### 3.1 Branch from Part 1
 ```bash
-git checkout demo1-basic-pipeline
-git checkout -b demo2-human-approval
+git checkout part-1-basic-pipeline
+git checkout -b part-2-human-in-the-loop
 ```
 
 **Context for Claude Code**:
-> Building on demo1, add Kubernetes and approval capabilities. Create or modify:
+> Building on part-1, add Kubernetes and approval capabilities. Create or modify:
 > 1. **workflows/pipeline.go**: Extend to include K8s deployment + approval workflow
 > 2. **activities/kubernetes.go**: NEW - K8s deployment and service management
 > 3. **activities/approval.go**: NEW - Human-in-the-loop approval activity
 > 4. **cmd/starter/main.go**: Add approval commands (-action=approve/reject)
-> 5. **docs/demo2-guide.md**: Demo instructions including approval workflow
+> 5. **docs/part-2-guide.md**: Demo instructions including approval workflow
 
-> Key changes from demo1: workflow now deploys to staging automatically, then waits for human approval before production deployment.
+> Key changes from part-1: workflow now deploys to staging automatically, then waits for human approval before production deployment.
 
-### Phase 4: Demo 3 Branch (demo3-production-features) - 45 minutes
+### Phase 4: Part 3 Branch (part-3-production-features) - 45 minutes
 **Goal**: Add production-ready features (timers, scheduling, rollbacks)
 
-#### 4.1 Branch from Demo 2  
+#### 4.1 Branch from Part 2  
 ```bash
-git checkout demo2-human-approval
-git checkout -b demo3-production-features
+git checkout part-2-human-in-the-loop
+git checkout -b part-3-production-features
 ```
 
 **Context for Claude Code**:
-> Building on demo2, add production-ready operational features. Create or modify:
+> Building on part-2, add production-ready operational features. Create or modify:
 > 1. **workflows/pipeline.go**: Add deployment windows, health monitoring, rollback timers
 > 2. **activities/monitoring.go**: NEW - Health checks and rollback operations
 > 3. **cmd/starter/main.go**: Add validation commands (-action=validate)
-> 4. **docs/demo3-guide.md**: Instructions for timer and scheduling demos
+> 4. **docs/part-3-guide.md**: Instructions for timer and scheduling demos
 
 > Key additions: deployment window checking, automatic rollback timers, manual validation to cancel rollbacks, selector patterns for concurrent operations.
 
-### Phase 5: Demo 5 Branch (demo5-polyglot-finale) - 90 minutes
+### Phase 5: Part 5 Branch (part-5-polyglot-finale) - 90 minutes
 **Goal**: Complete rewrite with multi-language workers
 
-#### 5.1 Branch from Demo 3
+#### 5.1 Branch from Part 3
 ```bash  
-git checkout demo3-production-features
-git checkout -b demo5-polyglot-finale
+git checkout part-3-production-features
+git checkout -b part-5-polyglot-finale
 ```
 
 **Context for Claude Code**:
@@ -205,27 +208,27 @@ git checkout -b demo5-polyglot-finale
 > 7. **workers/main.go**: Go worker for infrastructure operations
 > 8. **workers/main.py**: NEW - Python worker for testing/security
 > 9. **workers/main.js**: NEW - Node.js worker for notifications/monitoring
-> 10. **docs/demo5-guide.md**: Instructions for running all three workers
+> 10. **docs/part-5-guide.md**: Instructions for running all three workers
 
 > This demonstrates each language handling its strengths: Go for infrastructure, Python for data/testing, Node.js for async I/O.
 
-### Phase 6: Demo 4 Tag (crash resilience)
+### Phase 6: Part 4 Tag (crash resilience)
 **Goal**: Clean crash demonstration without code changes
 
-#### 6.1 Create Tag Pointing to Demo 1
+#### 6.1 Create Tag Pointing to Part 1
 ```bash
-git checkout demo1-basic-pipeline  
-git tag demo4-crash-resilience
+git checkout part-1-basic-pipeline  
+git tag part-4-crash-resilience
 ```
 
 **Context for Claude Code**:
-> Create documentation explaining that demo4 uses the same code as demo1 but focuses on demonstrating crash resilience. Create docs/demo4-guide.md with specific instructions for the crash demonstration (when to kill the worker, how to restart, what to observe).
+> Create documentation explaining that part-4 uses the same code as part-1 but focuses on demonstrating crash resilience. Create docs/part-4-guide.md with specific instructions for the crash demonstration (when to kill the worker, how to restart, what to observe).
 
 ---
 
 ## Demo-by-Demo Implementation (Branch-Based)
 
-### Demo 1: Basic Docker Pipeline (demo1-basic-pipeline branch)
+### Part 1: Basic Docker Pipeline (part-1-basic-pipeline branch)
 **Implementation Time**: 90 minutes
 **Complexity**: Low
 **Git Strategy**: Branch from main
@@ -244,7 +247,7 @@ git tag demo4-crash-resilience
 #### Claude Code Instructions
 ```bash
 git checkout main
-git checkout -b demo1-basic-pipeline
+git checkout -b part-1-basic-pipeline
 ```
 
 **Context for Claude Code**:
@@ -255,7 +258,7 @@ git checkout -b demo1-basic-pipeline
 > 2. **activities/docker.go**: Implement BuildDockerImage, TestDockerContainer, PushToRegistry
 > 3. **workers/main.go**: Register Docker activities and start worker
 > 4. **cmd/starter/main.go**: Add commands to trigger pipeline workflows
-> 5. **docs/demo1-guide.md**: Instructions for running this demo
+> 5. **docs/part-1-guide.md**: Instructions for running this demo
 
 > **Key requirements**:
 > - Simple sequential execution: Build -> Test -> Push
@@ -272,17 +275,17 @@ git checkout -b demo1-basic-pipeline
 
 ---
 
-### Demo 2: Human Approval Integration (demo2-human-approval branch)
+### Part 2: Human Approval Integration (part-2-human-in-the-loop branch)
 **Implementation Time**: 60 minutes
 **Complexity**: Medium
-**Git Strategy**: Branch from demo1-basic-pipeline
+**Git Strategy**: Branch from part-1-basic-pipeline
 
 #### Goals
 - Demonstrate human-in-the-loop workflows
 - Show Kubernetes integration
 - Introduce signals and queries
 
-#### Key Changes from Demo 1 Branch
+#### Key Changes from Part 1 Branch
 1. Extend workflow to include Kubernetes deployment
 2. Add approval activities and signal handling
 3. Enhance starter with approval commands
@@ -290,12 +293,12 @@ git checkout -b demo1-basic-pipeline
 
 #### Claude Code Instructions
 ```bash
-git checkout demo1-basic-pipeline
-git checkout -b demo2-human-approval
+git checkout part-1-basic-pipeline
+git checkout -b part-2-human-in-the-loop
 ```
 
 **Context for Claude Code**:
-> Building on demo1, extend the pipeline to include Kubernetes deployment with human approval gates. This demonstrates how Temporal handles long-running processes with human interaction.
+> Building on part-1, extend the pipeline to include Kubernetes deployment with human approval gates. This demonstrates how Temporal handles long-running processes with human interaction.
 
 > **Create these new files**:
 > 1. **activities/kubernetes.go**: K8s deployment, status checking, service discovery
@@ -304,7 +307,7 @@ git checkout -b demo2-human-approval
 > **Modify these existing files**:
 > 1. **workflows/pipeline.go**: Extend with K8s deployment + approval logic
 > 2. **cmd/starter/main.go**: Add approval commands (-action=approve/reject/status)
-> 3. **docs/demo2-guide.md**: Demo instructions with approval workflow
+> 3. **docs/part-2-guide.md**: Demo instructions with approval workflow
 
 > **Key requirements**:
 > - Automatic staging deployment after successful build/test
@@ -321,17 +324,17 @@ git checkout -b demo2-human-approval
 
 ---
 
-### Demo 3: Production Features (demo3-production-features branch)
+### Part 3: Production Features (part-3-production-features branch)
 **Implementation Time**: 45 minutes
 **Complexity**: Medium-High
-**Git Strategy**: Branch from demo2-human-approval
+**Git Strategy**: Branch from part-2-human-in-the-loop
 
 #### Goals
 - Demonstrate durable timers
 - Show advanced workflow patterns (selectors)
 - Include production-ready features
 
-#### Key Changes from Demo 2 Branch
+#### Key Changes from Part 2 Branch
 1. Add deployment window checking
 2. Implement rollback timers and health monitoring
 3. Use selector patterns for concurrent operations
@@ -339,12 +342,12 @@ git checkout -b demo2-human-approval
 
 #### Claude Code Instructions
 ```bash
-git checkout demo2-human-approval
-git checkout -b demo3-production-features
+git checkout part-2-human-in-the-loop
+git checkout -b part-3-production-features
 ```
 
 **Context for Claude Code**:
-> Building on demo2, add production-ready operational features that demonstrate Temporal's advanced capabilities for real-world deployments.
+> Building on part-2, add production-ready operational features that demonstrate Temporal's advanced capabilities for real-world deployments.
 
 > **Create these new files**:
 > 1. **activities/monitoring.go**: Health checks, rollback operations, deployment windows
@@ -352,7 +355,7 @@ git checkout -b demo3-production-features
 > **Modify these existing files**:
 > 1. **workflows/pipeline.go**: Add deployment windows, health monitoring, rollback timers
 > 2. **cmd/starter/main.go**: Add validation commands (-action=validate)
-> 3. **docs/demo3-guide.md**: Instructions for timer and scheduling demos
+> 3. **docs/part-3-guide.md**: Instructions for timer and scheduling demos
 
 > **Key requirements**:
 > - Deployment window checking (sleep until valid window)
@@ -370,10 +373,10 @@ git checkout -b demo3-production-features
 
 ---
 
-### Demo 4: Crash Resilience (demo4-crash-resilience tag)
+### Part 4: Crash Resilience (part-4-crash-resilience tag)
 **Implementation Time**: 5 minutes (documentation only)
 **Complexity**: Low (demo execution)
-**Git Strategy**: Tag pointing to demo1-basic-pipeline
+**Git Strategy**: Tag pointing to part-1-basic-pipeline
 
 #### Goals
 - Demonstrate Temporal's core value proposition
@@ -382,15 +385,15 @@ git checkout -b demo3-production-features
 
 #### Implementation
 ```bash
-git checkout demo1-basic-pipeline
-git tag demo4-crash-resilience
+git checkout part-1-basic-pipeline
+git tag part-4-crash-resilience
 ```
 
 **Context for Claude Code**:
-> Create documentation for the crash resilience demonstration. This uses the same code as demo1 but focuses on showing how Temporal handles worker crashes.
+> Create documentation for the crash resilience demonstration. This uses the same code as part-1 but focuses on showing how Temporal handles worker crashes.
 
 > **Create**:
-> 1. **docs/demo4-guide.md**: Detailed crash demonstration instructions
+> 1. **docs/part-4-guide.md**: Detailed crash demonstration instructions
 
 > **Key content**:
 > - When to kill the worker process during demo
@@ -408,17 +411,17 @@ git tag demo4-crash-resilience
 
 ---
 
-### Demo 5: Polyglot Coordination (demo5-polyglot-finale branch)
+### Part 5: Polyglot Coordination (part-5-polyglot-finale branch)
 **Implementation Time**: 90 minutes
 **Complexity**: High
-**Git Strategy**: Branch from demo3-production-features
+**Git Strategy**: Branch from part-3-production-features
 
 #### Goals
 - Demonstrate cross-language activity execution
 - Show specialized workers for different concerns
 - Provide compelling finale showcasing Temporal's flexibility
 
-#### Key Changes from Demo 3 Branch
+#### Key Changes from Part 3 Branch
 1. Complete rewrite of worker architecture
 2. Add Python worker for testing and security
 3. Add Node.js worker for notifications and monitoring
@@ -426,8 +429,8 @@ git tag demo4-crash-resilience
 
 #### Claude Code Instructions
 ```bash
-git checkout demo3-production-features
-git checkout -b demo5-polyglot-finale
+git checkout part-3-production-features
+git checkout -b part-5-polyglot-finale
 ```
 
 **Context for Claude Code**:
@@ -445,7 +448,7 @@ git checkout -b demo5-polyglot-finale
 > 1. **workflows/pipeline.go**: Orchestrate activities across all three workers
 > 2. **workers/main.go**: Focus on Docker and Kubernetes activities only
 > 3. **cmd/starter/main.go**: Handle coordination of multiple workers
-> 4. **docs/demo5-guide.md**: Instructions for running all three workers
+> 4. **docs/part-5-guide.md**: Instructions for running all three workers
 
 > **Worker Specialization**:
 > - **Go Worker**: Infrastructure operations (Docker, Kubernetes)
@@ -471,10 +474,7 @@ git checkout -b demo5-polyglot-finale
 ## Supporting Infrastructure
 
 ### Temporal Server Setup
-**File**: `setup/docker-compose.yml`
-
-**Context for Claude Code**:
-> Create a docker-compose.yml that provides a complete Temporal development environment including Temporal Server, PostgreSQL database, and Temporal UI. Include proper networking and persistence for workshop reliability.
+Use Temporal CLI and the command `temporal server start-dev --db-file temporal.db
 
 ### Kubernetes Setup
 **File**: `setup/setup-k8s.sh`
@@ -502,30 +502,30 @@ git checkout -b demo5-polyglot-finale
    - [ ] Docker daemon accessible
    - [ ] Sample app builds and runs
 
-2. **Demo 1 Testing**
+2. **Part 1 Testing**
    - [ ] Docker build succeeds
    - [ ] Container tests pass
    - [ ] Registry push works
    - [ ] Retry policies function correctly
 
-3. **Demo 2 Testing**
+3. **Part 2 Testing**
    - [ ] Kubernetes deployment succeeds
    - [ ] Approval workflow pauses correctly
    - [ ] Approval/rejection both work
    - [ ] Service URLs accessible
 
-4. **Demo 3 Testing**
+4. **Part 3 Testing**
    - [ ] Deployment window logic works
    - [ ] Rollback timer functions
    - [ ] Manual validation cancels timer
    - [ ] Health checks operate correctly
 
-5. **Demo 4 Testing**
+5. **Part 4 Testing**
    - [ ] Worker crash during build
    - [ ] Workflow resumes correctly
    - [ ] No duplicate operations occur
 
-6. **Demo 5 Testing**
+6. **Part 5 Testing**
    - [ ] All three workers start
    - [ ] Cross-language coordination works
    - [ ] Failure handling across workers
@@ -534,10 +534,10 @@ git checkout -b demo5-polyglot-finale
 ### Validation Scripts
 **Context for Claude Code**:
 > Create validation scripts that can test each demo independently:
-> 1. **validate-demo1.sh**: Runs demo1 end-to-end and validates results
-> 2. **validate-demo2.sh**: Tests approval workflow with automated approval
-> 3. **validate-demo3.sh**: Tests timer functionality with fast timers
-> 4. **validate-demo5.sh**: Starts all workers and validates polyglot coordination
+> 1. **validate-part-1.sh**: Runs part-1 end-to-end and validates results
+> 2. **validate-part-2.sh**: Tests approval workflow with automated approval
+> 3. **validate-part-3.sh**: Tests timer functionality with fast timers
+> 4. **validate-part-5.sh**: Starts all workers and validates polyglot coordination
 
 ---
 
@@ -547,7 +547,6 @@ git checkout -b demo5-polyglot-finale
 1. **Start Infrastructure**
    ```bash
    cd setup
-   docker-compose up -d
    ./setup-k8s.sh
    ```
 
@@ -562,7 +561,7 @@ git checkout -b demo5-polyglot-finale
    docker build -t demo-app:base .
    ```
 
-### Demo 1: Basic Pipeline (0-15 minutes)
+### Part 1: Basic Pipeline (0-15 minutes)
 **Key Talking Points**:
 - Temporal workflows as code
 - Activity retry policies
@@ -571,7 +570,7 @@ git checkout -b demo5-polyglot-finale
 **Demo Commands**:
 ```bash
 # Terminal 1: Start worker
-cd demo1 && go run worker/main.go
+go run worker/main.go
 
 # Terminal 2: Trigger workflow
 go run starter/main.go -image=demo-app:v1.0.0
@@ -583,7 +582,7 @@ go run starter/main.go -image=demo-app:v1.0.0
 - Docker images being created
 - Clean sequential execution
 
-### Demo 2: Human Approval (15-30 minutes)
+### Part 2: Human Approval (15-30 minutes)
 **Key Talking Points**:
 - Human-in-the-loop workflows
 - Long-running processes
@@ -592,7 +591,7 @@ go run starter/main.go -image=demo-app:v1.0.0
 **Demo Commands**:
 ```bash
 # Start enhanced worker
-cd demo2 && go run worker/main.go
+go run worker/main.go
 
 # Trigger with approval
 go run starter/main.go -image=demo-app:v2.0.0 -env=production
@@ -610,7 +609,7 @@ go run starter/main.go -action=approve -workflow=<id>
 - Approval process
 - Production deployment proceeding
 
-### Demo 3: Production Features (30-45 minutes)
+### Part 3: Production Features (30-45 minutes)
 **Key Talking Points**:
 - Durable timers
 - Deployment windows
@@ -619,7 +618,7 @@ go run starter/main.go -action=approve -workflow=<id>
 **Demo Commands**:
 ```bash
 # Start timer-enabled worker
-cd demo3 && go run worker/main.go
+cd part-3 && go run worker/main.go
 
 # Trigger with rollback timer
 go run starter/main.go -image=demo-app:v3.0.0 -env=production
@@ -635,7 +634,7 @@ go run starter/main.go -action=validate -workflow=<id>
 - Manual validation canceling timer
 - Health monitoring
 
-### Demo 4: Crash Resilience (45-60 minutes)
+### Part 4: Crash Resilience (45-60 minutes)
 **Key Talking Points**:
 - Temporal's core value proposition
 - Deterministic replay
@@ -644,7 +643,7 @@ go run starter/main.go -action=validate -workflow=<id>
 **Demo Commands**:
 ```bash
 # Start workflow
-cd demo4 && go run worker/main.go &
+cd part-4 && go run worker/main.go &
 WORKER_PID=$!
 
 # Trigger build
@@ -662,7 +661,7 @@ go run worker/main.go
 - No duplicate Docker operations
 - State preservation across crashes
 
-### Demo 5: Polyglot Finale (60-75 minutes)
+### Part 5: Polyglot Finale (60-75 minutes)
 **Key Talking Points**:
 - Cross-language coordination
 - Specialized workers
@@ -671,9 +670,9 @@ go run worker/main.go
 **Demo Commands**:
 ```bash
 # Start all workers (3 terminals)
-cd demo5
+cd part-5
 go run workers/go-worker/main.go &
-python workers/python-worker/main.py &
+python w &
 node workers/nodejs-worker/main.js &
 
 # Trigger polyglot workflow

@@ -111,3 +111,93 @@ type WorkflowState struct {
 	ApprovalReceived bool
 	ProductionReady  bool
 }
+
+// Additional Kubernetes activity types
+type DeployToKubernetesRequest struct {
+	ImageTag    string
+	Environment string // staging or production
+}
+
+type DeployToKubernetesResponse struct {
+	Success       bool
+	DeploymentURL string
+	Message       string
+	Timestamp     time.Time
+}
+
+type CheckDeploymentStatusRequest struct {
+	Environment string
+}
+
+type CheckDeploymentStatusResponse struct {
+	Ready         bool
+	Replicas      int32
+	ReadyReplicas int32
+	Message       string
+}
+
+type RollbackDeploymentRequest struct {
+	Environment string
+	Reason      string
+}
+
+type RollbackDeploymentResponse struct {
+	Success bool
+	Message string
+}
+
+type GetServiceURLRequest struct {
+	Environment string
+	ServiceName string
+}
+
+type GetServiceURLResponse struct {
+	URL     string
+	Ready   bool
+	Message string
+}
+
+// Additional Approval activity types
+type SendApprovalRequestRequest struct {
+	Environment string
+	ImageTag    string
+	StagingURL  string
+}
+
+type SendApprovalRequestResponse struct {
+	Success        bool
+	NotificationID string
+	Message        string
+}
+
+type LogApprovalDecisionRequest struct {
+	Approved  bool
+	Approver  string
+	Reason    string
+	Timestamp time.Time
+}
+
+type LogApprovalDecisionResponse struct {
+	Success bool
+	Message string
+}
+
+type SendApprovalNotificationRequest struct {
+	Approved    bool
+	Environment string
+	ImageTag    string
+	Approver    string
+	Reason      string
+}
+
+type SendApprovalNotificationResponse struct {
+	Success bool
+	Message string
+}
+
+// Approval signal types
+type ApprovalSignal struct {
+	Approved bool
+	Approver string
+	Reason   string
+}

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/temporal-workshop/cicd/shared"
+	"github.com/temporal-community/workshop-cicd-k8s-deployment/shared"
 	"go.temporal.io/sdk/activity"
 )
 

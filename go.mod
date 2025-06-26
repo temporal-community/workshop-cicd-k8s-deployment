@@ -1,4 +1,4 @@
-module github.com/temporal-workshop/cicd
+module github.com/temporal-community/workshop-cicd-k8s-deployment
 
 go 1.21
 

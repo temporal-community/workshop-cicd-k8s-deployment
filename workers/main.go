@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/temporal-workshop/cicd/activities"
-	"github.com/temporal-workshop/cicd/workflows"
+	"github.com/temporal-community/workshop-cicd-k8s-deployment/activities"
+	"github.com/temporal-community/workshop-cicd-k8s-deployment/workflows"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
@@ -25,14 +25,35 @@ func main() {
 
 	// Register workflows
 	w.RegisterWorkflow(workflows.BasicPipelineWorkflow)
+	w.RegisterWorkflow(workflows.PipelineWithApprovalWorkflow)
 
-	// Register activities
+	// Register Docker activities
 	w.RegisterActivity(activities.BuildDockerImage)
 	w.RegisterActivity(activities.TestDockerContainer)
 	w.RegisterActivity(activities.PushToRegistry)
 
-	log.Println("Starting Temporal worker for Demo 1 - Basic Pipeline")
+	// Register Kubernetes activities
+	k8sActivities := &activities.KubernetesActivities{}
+	w.RegisterActivity(k8sActivities.DeployToKubernetes)
+	w.RegisterActivity(k8sActivities.CheckDeploymentStatus)
+	w.RegisterActivity(k8sActivities.RollbackDeployment)
+	w.RegisterActivity(k8sActivities.GetServiceURL)
+
+	// Register Approval activities
+	approvalActivities := &activities.ApprovalActivities{}
+	w.RegisterActivity(approvalActivities.SendApprovalRequest)
+	w.RegisterActivity(approvalActivities.LogApprovalDecision)
+	w.RegisterActivity(approvalActivities.SendApprovalNotification)
+
+	log.Println("Starting Temporal worker for Demo 2 - Human-in-the-Loop Pipeline")
 	log.Println("Worker listening on task queue: cicd-task-queue")
+	log.Println("Registered workflows:")
+	log.Println("  - BasicPipelineWorkflow")
+	log.Println("  - PipelineWithApprovalWorkflow")
+	log.Println("Registered activities:")
+	log.Println("  - Docker: Build, Test, Push")
+	log.Println("  - Kubernetes: Deploy, CheckStatus, Rollback, GetServiceURL")
+	log.Println("  - Approval: SendRequest, LogDecision, SendNotification")
 
 	// Start worker
 	err = w.Run(worker.InterruptCh())

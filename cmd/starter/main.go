@@ -6,21 +6,25 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
-	"github.com/temporal-workshop/cicd/shared"
-	"github.com/temporal-workshop/cicd/workflows"
+	"github.com/temporal-community/workshop-cicd-k8s-deployment/shared"
+	"github.com/temporal-community/workshop-cicd-k8s-deployment/workflows"
 	"go.temporal.io/sdk/client"
 )
 
 func main() {
 	var (
-		action       = flag.String("action", "create", "Action to perform: create")
+		action       = flag.String("action", "create", "Action to perform: create, approve, reject, status")
 		imageName    = flag.String("image", "demo-app", "Docker image name")
 		tag          = flag.String("tag", "", "Docker image tag (defaults to v1.0.0)")
 		registryURL  = flag.String("registry", "", "Container registry URL")
 		environment  = flag.String("env", "staging", "Deployment environment: staging or production")
 		buildContext = flag.String("context", "./sample-app", "Docker build context path")
 		dockerfile   = flag.String("dockerfile", "Dockerfile", "Path to Dockerfile")
+		workflowID   = flag.String("workflow", "", "Workflow ID for approval actions")
+		approver     = flag.String("approver", "", "Name of the approver")
+		reason       = flag.String("reason", "", "Reason for approval/rejection")
 	)
 	flag.Parse()
 
@@ -41,6 +45,30 @@ func main() {
 	switch *action {
 	case "create":
 		startPipeline(c, *imageName, *tag, *registryURL, *environment, *buildContext, *dockerfile)
+	case "approve":
+		if *workflowID == "" {
+			log.Fatal("Workflow ID is required for approval action")
+		}
+		if *approver == "" {
+			*approver = "demo-user"
+		}
+		sendApprovalSignal(c, *workflowID, true, *approver, *reason)
+	case "reject":
+		if *workflowID == "" {
+			log.Fatal("Workflow ID is required for rejection action")
+		}
+		if *approver == "" {
+			*approver = "demo-user"
+		}
+		if *reason == "" {
+			*reason = "Deployment rejected"
+		}
+		sendApprovalSignal(c, *workflowID, false, *approver, *reason)
+	case "status":
+		if *workflowID == "" {
+			log.Fatal("Workflow ID is required for status action")
+		}
+		getWorkflowStatus(c, *workflowID)
 	default:
 		log.Fatalf("Unknown action: %s", *action)
 	}
@@ -66,8 +94,16 @@ func startPipeline(c client.Client, imageName, tag, registryURL, environment, bu
 		TaskQueue: "cicd-task-queue",
 	}
 
+	// Choose workflow based on environment
+	var workflowFunc interface{}
+	if environment == "production" {
+		workflowFunc = workflows.PipelineWithApprovalWorkflow
+	} else {
+		workflowFunc = workflows.BasicPipelineWorkflow
+	}
+
 	// Start workflow
-	we, err := c.ExecuteWorkflow(context.Background(), workflowOptions, workflows.BasicPipelineWorkflow, request)
+	we, err := c.ExecuteWorkflow(context.Background(), workflowOptions, workflowFunc, request)
 	if err != nil {
 		log.Fatalf("Unable to start workflow: %v", err)
 	}
@@ -88,4 +124,60 @@ func getTemporalHost() string {
 		return "localhost:7233"
 	}
 	return host
+}
+
+func sendApprovalSignal(c client.Client, workflowID string, approved bool, approver string, reason string) {
+	// Create approval signal
+	signal := shared.ApprovalSignal{
+		Approved: approved,
+		Approver: approver,
+		Reason:   reason,
+	}
+
+	// Send signal to workflow
+	err := c.SignalWorkflow(context.Background(), workflowID, "", "approval", signal)
+	if err != nil {
+		log.Fatalf("Unable to send approval signal: %v", err)
+	}
+
+	if approved {
+		fmt.Printf("✅ Approval signal sent successfully!\n")
+		fmt.Printf("  Workflow ID: %s\n", workflowID)
+		fmt.Printf("  Approved by: %s\n", approver)
+		if reason != "" {
+			fmt.Printf("  Reason: %s\n", reason)
+		}
+	} else {
+		fmt.Printf("❌ Rejection signal sent successfully!\n")
+		fmt.Printf("  Workflow ID: %s\n", workflowID)
+		fmt.Printf("  Rejected by: %s\n", approver)
+		fmt.Printf("  Reason: %s\n", reason)
+	}
+}
+
+func getWorkflowStatus(c client.Client, workflowID string) {
+	// Get workflow description
+	resp, err := c.DescribeWorkflowExecution(context.Background(), workflowID, "")
+	if err != nil {
+		log.Fatalf("Unable to get workflow status: %v", err)
+	}
+
+	fmt.Printf("Workflow Status:\n")
+	fmt.Printf("  Workflow ID: %s\n", workflowID)
+	fmt.Printf("  Status: %s\n", resp.WorkflowExecutionInfo.Status)
+	fmt.Printf("  Start Time: %s\n", resp.WorkflowExecutionInfo.StartTime)
+	
+	if resp.WorkflowExecutionInfo.CloseTime != nil {
+		fmt.Printf("  Close Time: %s\n", resp.WorkflowExecutionInfo.CloseTime)
+	} else {
+		fmt.Printf("  Running for: %s\n", time.Since(resp.WorkflowExecutionInfo.StartTime.AsTime()))
+	}
+
+	// Show pending activities if any
+	if len(resp.PendingActivities) > 0 {
+		fmt.Printf("\nPending Activities:\n")
+		for _, activity := range resp.PendingActivities {
+			fmt.Printf("  - %s (attempts: %d)\n", activity.ActivityType.Name, activity.Attempt)
+		}
+	}
 }
