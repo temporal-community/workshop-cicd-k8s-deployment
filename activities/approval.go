@@ -17,7 +17,7 @@ type ApprovalActivities struct{}
 func (a *ApprovalActivities) SendApprovalRequest(ctx context.Context, req shared.SendApprovalRequestRequest) (*shared.SendApprovalRequestResponse, error) {
 	logger := activity.GetLogger(ctx)
 	info := activity.GetInfo(ctx)
-	
+
 	logger.Info("Sending approval request",
 		"environment", req.Environment,
 		"imageTag", req.ImageTag,
@@ -27,7 +27,7 @@ func (a *ApprovalActivities) SendApprovalRequest(ctx context.Context, req shared
 
 	// In a real implementation, this would send notifications via Slack, email, etc.
 	// For the demo, we'll just log the approval request details
-	
+
 	approvalMessage := fmt.Sprintf(`
 ==================================================
 APPROVAL REQUIRED - Production Deployment
@@ -61,9 +61,6 @@ To check status:
 
 	logger.Info(approvalMessage)
 
-	// Simulate sending notification
-	time.Sleep(1 * time.Second)
-
 	return &shared.SendApprovalRequestResponse{
 		Success:        true,
 		NotificationID: fmt.Sprintf("approval-%s-%d", info.WorkflowExecution.ID, time.Now().Unix()),
@@ -74,7 +71,7 @@ To check status:
 // LogApprovalDecision logs the approval decision
 func (a *ApprovalActivities) LogApprovalDecision(ctx context.Context, req shared.LogApprovalDecisionRequest) (*shared.LogApprovalDecisionResponse, error) {
 	logger := activity.GetLogger(ctx)
-	
+
 	logger.Info("Logging approval decision",
 		"approved", req.Approved,
 		"approver", req.Approver,
@@ -97,9 +94,6 @@ func (a *ApprovalActivities) LogApprovalDecision(ctx context.Context, req shared
 
 	logger.Info(message)
 
-	// Simulate logging operation
-	time.Sleep(500 * time.Millisecond)
-
 	return &shared.LogApprovalDecisionResponse{
 		Success: true,
 		Message: message,
@@ -109,7 +103,7 @@ func (a *ApprovalActivities) LogApprovalDecision(ctx context.Context, req shared
 // SendApprovalNotification sends a notification about the approval decision
 func (a *ApprovalActivities) SendApprovalNotification(ctx context.Context, req shared.SendApprovalNotificationRequest) (*shared.SendApprovalNotificationResponse, error) {
 	logger := activity.GetLogger(ctx)
-	
+
 	logger.Info("Sending approval notification",
 		"approved", req.Approved,
 		"environment", req.Environment)
@@ -158,9 +152,6 @@ to the production environment.
 	}
 
 	logger.Info(notificationMessage)
-
-	// Simulate sending notification
-	time.Sleep(500 * time.Millisecond)
 
 	return &shared.SendApprovalNotificationResponse{
 		Success: true,
