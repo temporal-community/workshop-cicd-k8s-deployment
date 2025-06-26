@@ -15,16 +15,17 @@ import (
 
 func main() {
 	var (
-		action       = flag.String("action", "create", "Action to perform: create, approve, reject, status")
+		action       = flag.String("action", "create", "Action to perform: create, approve, reject, status, validate")
 		imageName    = flag.String("image", "demo-app", "Docker image name")
 		tag          = flag.String("tag", "", "Docker image tag (defaults to v1.0.0)")
 		registryURL  = flag.String("registry", "", "Container registry URL")
 		environment  = flag.String("env", "staging", "Deployment environment: staging or production")
 		buildContext = flag.String("context", "./sample-app", "Docker build context path")
 		dockerfile   = flag.String("dockerfile", "Dockerfile", "Path to Dockerfile")
-		workflowID   = flag.String("workflow", "", "Workflow ID for approval actions")
+		workflowID   = flag.String("workflow", "", "Workflow ID for approval/validation actions")
 		approver     = flag.String("approver", "", "Name of the approver")
-		reason       = flag.String("reason", "", "Reason for approval/rejection")
+		validator    = flag.String("validator", "", "Name of the validator (for validation action)")
+		reason       = flag.String("reason", "", "Reason for approval/rejection/validation")
 	)
 	flag.Parse()
 
@@ -64,6 +65,17 @@ func main() {
 			*reason = "Deployment rejected"
 		}
 		sendApprovalSignal(c, *workflowID, false, *approver, *reason)
+	case "validate":
+		if *workflowID == "" {
+			log.Fatal("Workflow ID is required for validation action")
+		}
+		if *validator == "" {
+			*validator = "demo-validator"
+		}
+		if *reason == "" {
+			*reason = "Deployment validated successfully"
+		}
+		sendValidationSignal(c, *workflowID, true, *validator, *reason)
 	case "status":
 		if *workflowID == "" {
 			log.Fatal("Workflow ID is required for status action")
@@ -94,13 +106,8 @@ func startPipeline(c client.Client, imageName, tag, registryURL, environment, bu
 		TaskQueue: "cicd-task-queue",
 	}
 
-	// Choose workflow based on environment
-	var workflowFunc interface{}
-	if environment == "production" {
-		workflowFunc = workflows.PipelineWithApprovalWorkflow
-	} else {
-		workflowFunc = workflows.BasicPipelineWorkflow
-	}
+	// Use the unified CICDPipelineWorkflow with all features
+	workflowFunc := workflows.CICDPipelineWorkflow
 
 	// Start workflow
 	we, err := c.ExecuteWorkflow(context.Background(), workflowOptions, workflowFunc, request)
@@ -152,6 +159,37 @@ func sendApprovalSignal(c client.Client, workflowID string, approved bool, appro
 		fmt.Printf("  Workflow ID: %s\n", workflowID)
 		fmt.Printf("  Rejected by: %s\n", approver)
 		fmt.Printf("  Reason: %s\n", reason)
+	}
+}
+
+func sendValidationSignal(c client.Client, workflowID string, validated bool, validator string, reason string) {
+	// Create validation signal
+	signal := shared.ValidationSignal{
+		Validated: validated,
+		Validator: validator,
+		Reason:    reason,
+	}
+
+	// Send signal to workflow
+	err := c.SignalWorkflow(context.Background(), workflowID, "", "validation", signal)
+	if err != nil {
+		log.Fatalf("Unable to send validation signal: %v", err)
+	}
+
+	if validated {
+		fmt.Printf("✅ Validation signal sent successfully!\n")
+		fmt.Printf("  Workflow ID: %s\n", workflowID)
+		fmt.Printf("  Validated by: %s\n", validator)
+		if reason != "" {
+			fmt.Printf("  Reason: %s\n", reason)
+		}
+		fmt.Printf("\n🎉 Deployment validated - rollback timer has been canceled!\n")
+	} else {
+		fmt.Printf("❌ Validation failure signal sent!\n")
+		fmt.Printf("  Workflow ID: %s\n", workflowID)
+		fmt.Printf("  Validated by: %s\n", validator)
+		fmt.Printf("  Reason: %s\n", reason)
+		fmt.Printf("\n⚠️  Deployment validation failed - rollback will proceed!\n")
 	}
 }
 

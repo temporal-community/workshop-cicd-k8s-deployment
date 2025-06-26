@@ -24,8 +24,7 @@ func main() {
 	w := worker.New(c, "cicd-task-queue", worker.Options{})
 
 	// Register workflows
-	w.RegisterWorkflow(workflows.BasicPipelineWorkflow)
-	w.RegisterWorkflow(workflows.PipelineWithApprovalWorkflow)
+	w.RegisterWorkflow(workflows.CICDPipelineWorkflow)
 
 	// Register Docker activities
 	w.RegisterActivity(activities.BuildDockerImage)
@@ -45,15 +44,19 @@ func main() {
 	w.RegisterActivity(approvalActivities.LogApprovalDecision)
 	w.RegisterActivity(approvalActivities.SendApprovalNotification)
 
-	log.Println("Starting Temporal worker for Demo 2 - Human-in-the-Loop Pipeline")
+	// Register Monitoring activities (Part 3)
+	monitoringActivities := &activities.MonitoringActivities{}
+	w.RegisterActivity(monitoringActivities.ValidateDeployment)
+
+	log.Println("Starting Temporal worker for CI/CD Pipeline")
 	log.Println("Worker listening on task queue: cicd-task-queue")
 	log.Println("Registered workflows:")
-	log.Println("  - BasicPipelineWorkflow")
-	log.Println("  - PipelineWithApprovalWorkflow")
+	log.Println("  - CICDPipelineWorkflow (unified workflow with all features)")
 	log.Println("Registered activities:")
 	log.Println("  - Docker: Build, Test, Push")
 	log.Println("  - Kubernetes: Deploy, CheckStatus, Rollback, GetServiceURL")
 	log.Println("  - Approval: SendRequest, LogDecision, SendNotification")
+	log.Println("  - Monitoring: ValidateDeployment")
 
 	// Start worker
 	err = w.Run(worker.InterruptCh())

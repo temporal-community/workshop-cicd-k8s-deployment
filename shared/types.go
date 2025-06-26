@@ -140,12 +140,15 @@ type CheckDeploymentStatusResponse struct {
 
 type RollbackDeploymentRequest struct {
 	Environment string
+	ImageTag    string
 	Reason      string
+	Timestamp   time.Time
 }
 
 type RollbackDeploymentResponse struct {
-	Success bool
-	Message string
+	Success   bool
+	Message   string
+	Timestamp time.Time
 }
 
 type GetServiceURLRequest struct {
@@ -203,3 +206,11 @@ type ApprovalSignal struct {
 	Approver string
 	Reason   string
 }
+
+// Validation signal types (Part 3)
+type ValidationSignal struct {
+	Validated bool
+	Validator string
+	Reason    string
+}
+

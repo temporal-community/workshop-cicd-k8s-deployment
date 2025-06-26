@@ -91,7 +91,7 @@ temporal-cicd-workshop/
 main (setup + foundation)
 ├── part-1-basic-pipeline
 ├── part-2-human-in-the-loop
-├── part-3-production-features  
+├── part-3-durable-timers  
 ├── part-4-crash-resilience (tag pointing to part-1)
 └── part-5-polyglot-finale
 ```
@@ -100,7 +100,7 @@ main (setup + foundation)
 - **main**: Foundation setup, sample app, basic project structure
 - **part-1-basic-pipeline**: Basic Docker pipeline workflow + activities
 - **part-2-human-in-the-loop**: Adds Kubernetes deployment + approval workflow
-- **part-3-production-features**: Adds timers, scheduling, health checks
+- **part-3-durable-timers**: Adds automatic rollback timers and validation signals
 - **part-4-crash-resilience**: Git tag pointing to part-1 (for clean crash demo)
 - **part-5-polyglot-finale**: Complete rewrite with multi-language workers
 
@@ -169,30 +169,30 @@ git checkout -b part-2-human-in-the-loop
 
 > Key changes from part-1: workflow now deploys to staging automatically, then waits for human approval before production deployment.
 
-### Phase 4: Part 3 Branch (part-3-production-features) - 45 minutes
-**Goal**: Add production-ready features (timers, scheduling, rollbacks)
+### Phase 4: Part 3 Branch (part-3-durable-timers) - 30 minutes
+**Goal**: Demonstrate Temporal's durable timer capabilities through production deployment safety
 
 #### 4.1 Branch from Part 2  
 ```bash
 git checkout part-2-human-in-the-loop
-git checkout -b part-3-production-features
+git checkout -b part-3-durable-timers
 ```
 
 **Context for Claude Code**:
-> Building on part-2, add production-ready operational features. Create or modify:
-> 1. **workflows/pipeline.go**: Add deployment windows, health monitoring, rollback timers
-> 2. **activities/monitoring.go**: NEW - Health checks and rollback operations
+> Building on part-2, add durable timer functionality focused on production deployment safety. Create or modify:
+> 1. **workflows/pipeline.go**: Add automatic rollback timer after production deployment
+> 2. **activities/monitoring.go**: NEW - Rollback operations only
 > 3. **cmd/starter/main.go**: Add validation commands (-action=validate)
-> 4. **docs/part-3-guide.md**: Instructions for timer and scheduling demos
+> 4. **docs/part-3-guide.md**: Instructions for timer demonstration
 
-> Key additions: deployment window checking, automatic rollback timers, manual validation to cancel rollbacks, selector patterns for concurrent operations.
+> Key focus: After production deployment, start a 30-second rollback timer. Wait for validation signal OR timer expiration. If validated, cancel timer and continue. If timer expires, automatically rollback deployment. Demonstrates timer durability across worker restarts.
 
 ### Phase 5: Part 5 Branch (part-5-polyglot-finale) - 90 minutes
 **Goal**: Complete rewrite with multi-language workers
 
 #### 5.1 Branch from Part 3
 ```bash  
-git checkout part-3-production-features
+git checkout part-3-durable-timers
 git checkout -b part-5-polyglot-finale
 ```
 
@@ -324,52 +324,54 @@ git checkout -b part-2-human-in-the-loop
 
 ---
 
-### Part 3: Production Features (part-3-production-features branch)
-**Implementation Time**: 45 minutes
-**Complexity**: Medium-High
+### Part 3: Durable Timers (part-3-durable-timers branch)
+**Implementation Time**: 30 minutes
+**Complexity**: Medium
 **Git Strategy**: Branch from part-2-human-in-the-loop
 
 #### Goals
-- Demonstrate durable timers
-- Show advanced workflow patterns (selectors)
-- Include production-ready features
+- Demonstrate Temporal's durable timer capabilities
+- Show production deployment safety patterns
+- Illustrate timer durability across worker crashes
 
 #### Key Changes from Part 2 Branch
-1. Add deployment window checking
-2. Implement rollback timers and health monitoring
-3. Use selector patterns for concurrent operations
-4. Add manual validation to cancel rollbacks
+1. Add automatic rollback timer after production deployment
+2. Implement validation signal to cancel rollback
+3. Add rollback activity for failed deployments
+4. Simple selector pattern for timer vs validation
 
 #### Claude Code Instructions
 ```bash
 git checkout part-2-human-in-the-loop
-git checkout -b part-3-production-features
+git checkout -b part-3-durable-timers
 ```
 
 **Context for Claude Code**:
-> Building on part-2, add production-ready operational features that demonstrate Temporal's advanced capabilities for real-world deployments.
+> Building on part-2, add focused durable timer functionality that demonstrates Temporal's timer capabilities in a production deployment context.
 
 > **Create these new files**:
-> 1. **activities/monitoring.go**: Health checks, rollback operations, deployment windows
+> 1. **activities/monitoring.go**: Rollback operations only (keep it simple)
 
 > **Modify these existing files**:
-> 1. **workflows/pipeline.go**: Add deployment windows, health monitoring, rollback timers
+> 1. **workflows/pipeline.go**: Add production workflow with rollback timer
 > 2. **cmd/starter/main.go**: Add validation commands (-action=validate)
-> 3. **docs/part-3-guide.md**: Instructions for timer and scheduling demos
+> 3. **docs/part-3-guide.md**: Instructions for timer demonstration
+> 4. **shared/types.go**: Add validation signal and rollback request types
 
 > **Key requirements**:
-> - Deployment window checking (sleep until valid window)
-> - Automatic rollback timer (30 min, demo with 30 seconds)
-> - Manual validation to cancel rollback timer
-> - Health monitoring after production deployment
-> - Selector pattern for handling timer vs validation signal
+> - After production deployment, start 30-second rollback timer
+> - Use selector to wait for validation signal OR timer expiration
+> - If validated, cancel timer and continue normally
+> - If timer expires, execute rollback activity
 > - CLI validation: `go run cmd/starter/main.go -action=validate -workflow=<id>`
+> - Timer must survive worker crashes (demonstrate this)
 
 #### Expected Demo Flow
-1. Show deployment window checking (configure for demo timing)
-2. Deploy to production with rollback timer
-3. Demonstrate manual validation canceling rollback
-4. Show timer functionality in Temporal UI
+1. Deploy to production (normal flow)
+2. Timer starts counting down (visible in Temporal UI)
+3. **Option A**: Validate deployment (timer cancels, workflow succeeds)
+4. **Option B**: Let timer expire (automatic rollback triggers)
+5. **Crash Demo**: Kill worker during timer, restart, timer continues from exact point
 
 ---
 
@@ -414,7 +416,7 @@ git tag part-4-crash-resilience
 ### Part 5: Polyglot Coordination (part-5-polyglot-finale branch)
 **Implementation Time**: 90 minutes
 **Complexity**: High
-**Git Strategy**: Branch from part-3-production-features
+**Git Strategy**: Branch from part-3-durable-timers
 
 #### Goals
 - Demonstrate cross-language activity execution
@@ -429,7 +431,7 @@ git tag part-4-crash-resilience
 
 #### Claude Code Instructions
 ```bash
-git checkout part-3-production-features
+git checkout part-3-durable-timers
 git checkout -b part-5-polyglot-finale
 ```
 
@@ -515,10 +517,10 @@ Use Temporal CLI and the command `temporal server start-dev --db-file temporal.d
    - [ ] Service URLs accessible
 
 4. **Part 3 Testing**
-   - [ ] Deployment window logic works
-   - [ ] Rollback timer functions
-   - [ ] Manual validation cancels timer
-   - [ ] Health checks operate correctly
+   - [ ] Rollback timer starts after production deployment
+   - [ ] Manual validation cancels timer successfully
+   - [ ] Timer expiration triggers automatic rollback
+   - [ ] Timer survives worker crashes and continues from exact point
 
 5. **Part 4 Testing**
    - [ ] Worker crash during build
@@ -609,30 +611,33 @@ go run starter/main.go -action=approve -workflow=<id>
 - Approval process
 - Production deployment proceeding
 
-### Part 3: Production Features (30-45 minutes)
+### Part 3: Durable Timers (30-45 minutes)
 **Key Talking Points**:
-- Durable timers
-- Deployment windows
-- Automatic rollback capabilities
+- Durable timers survive worker crashes
+- Production deployment safety patterns
+- Timer vs signal handling with selectors
 
 **Demo Commands**:
 ```bash
 # Start timer-enabled worker
-cd part-3 && go run worker/main.go
+go run workers/main.go
 
-# Trigger with rollback timer
-go run starter/main.go -image=demo-app:v3.0.0 -env=production
+# Trigger production deployment with rollback timer
+go run cmd/starter/main.go -action=create -image=demo-app:v3.0.0 -env=production
 
-# Show rollback timer in UI
-# Validate deployment to cancel timer
-go run starter/main.go -action=validate -workflow=<id>
+# Show rollback timer countdown in Temporal UI
+
+# Option A: Validate deployment to cancel timer
+go run cmd/starter/main.go -action=validate -workflow=<id>
+
+# Option B: Let timer expire to see automatic rollback
 ```
 
 **What to Show**:
-- Deployment window checking
-- Rollback timer in UI
-- Manual validation canceling timer
-- Health monitoring
+- Production deployment completing
+- 30-second rollback timer visible in UI
+- Validation canceling timer OR timer expiring and triggering rollback
+- Crash demo: kill worker during timer, restart, timer continues
 
 ### Part 4: Crash Resilience (45-60 minutes)
 **Key Talking Points**:
