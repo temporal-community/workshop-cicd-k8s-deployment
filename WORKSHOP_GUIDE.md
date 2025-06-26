@@ -32,7 +32,7 @@ export REGISTRY_URL="your-registry-url"  # e.g., registry.digitalocean.com/works
 
 ```bash
 cd sample-app
-docker build -t demo-app:base .
+docker buildx build -t demo-app:base .
 cd ..
 ```
 
@@ -65,7 +65,7 @@ git checkout demo1-basic-pipeline
 
 3. In another terminal, trigger the workflow:
    ```bash
-   go run cmd/starter/main.go -action=create -image=demo-app:v1.0.0
+   go run cmd/starter/main.go -action=create -image=demo-app -tag=v1.0.0 -dockerfile=sample-app/Dockerfile
    ```
 
 4. Open Temporal UI: http://localhost:8233
@@ -76,7 +76,13 @@ git checkout demo1-basic-pipeline
    ```bash
    # Set environment variable to simulate failures
    export SIMULATE_DOCKER_FAILURE=true
-   go run cmd/starter/main.go -action=create -image=demo-app:v1.0.1
+   go run cmd/starter/main.go -action=create -image=demo-app -tag=v1.0.1
+   ```
+
+7. Show custom Dockerfile usage:
+   ```bash
+   # Use custom Dockerfile path
+   go run cmd/starter/main.go -action=create -image=demo-app -tag=v1.0.2 
    ```
 
 ### Demo 2: Human Approval Integration (15 minutes)
@@ -106,7 +112,7 @@ git checkout demo2-human-approval
 
 3. Trigger deployment to production:
    ```bash
-   go run cmd/starter/main.go -action=create -image=demo-app:v2.0.0 -env=production
+   go run cmd/starter/main.go -action=create -image=demo-app -tag=v2.0.0 -env=production
    ```
 
 4. Show staging deployment:
@@ -153,7 +159,7 @@ git checkout demo3-production-features
 3. Start worker and trigger deployment:
    ```bash
    go run workers/main.go &
-   go run cmd/starter/main.go -action=create -image=demo-app:v3.0.0 -env=production
+   go run cmd/starter/main.go -action=create -image=demo-app -tag=v3.0.0 -env=production
    ```
 
 4. Show workflow waiting for deployment window in UI
@@ -193,7 +199,7 @@ git checkout demo4-crash-resilience
 
 2. In another terminal, start a long-running build:
    ```bash
-   go run cmd/starter/main.go -action=create -image=demo-app:crash-test
+   go run cmd/starter/main.go -action=create -image=demo-app -tag=crash-test
    ```
 
 3. During Docker build activity (watch the logs), kill the worker:
@@ -245,7 +251,7 @@ git checkout demo5-polyglot-finale
 
 3. Trigger the polyglot workflow:
    ```bash
-   go run cmd/starter/main.go -action=create -image=demo-app:polyglot -env=production
+   go run cmd/starter/main.go -action=create -image=demo-app -tag=polyglot -env=production
    ```
 
 4. In Temporal UI, show activities executing on different workers

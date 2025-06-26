@@ -16,8 +16,8 @@ import (
 func BuildDockerImage(ctx context.Context, req shared.DockerBuildRequest) (*shared.DockerBuildResponse, error) {
 	logger := activity.GetLogger(ctx)
 	startTime := time.Now()
-	
-	logger.Info("Starting Docker build", 
+
+	logger.Info("Starting Docker build",
 		"image", req.ImageName,
 		"tag", req.Tag,
 		"context", req.BuildContext)
@@ -32,16 +32,16 @@ func BuildDockerImage(ctx context.Context, req shared.DockerBuildRequest) (*shar
 
 	// Construct the image tag
 	imageTag := fmt.Sprintf("%s:%s", req.ImageName, req.Tag)
-	
+
 	// Build the Docker image
-	cmd := exec.CommandContext(ctx, "docker", "build", 
+	cmd := exec.CommandContext(ctx, "docker", "buildx", "build",
 		"-t", imageTag,
 		"-f", req.Dockerfile,
 		req.BuildContext)
-	
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		logger.Error("Docker build failed", 
+		logger.Error("Docker build failed",
 			"error", err,
 			"output", string(output))
 		return nil, fmt.Errorf("docker build failed: %w\nOutput: %s", err, output)
@@ -56,7 +56,7 @@ func BuildDockerImage(ctx context.Context, req shared.DockerBuildRequest) (*shar
 	imageID := strings.TrimSpace(string(imageIDBytes))
 
 	duration := time.Since(startTime)
-	logger.Info("Docker build completed successfully", 
+	logger.Info("Docker build completed successfully",
 		"imageID", imageID,
 		"duration", duration)
 
@@ -73,8 +73,8 @@ func BuildDockerImage(ctx context.Context, req shared.DockerBuildRequest) (*shar
 func TestDockerContainer(ctx context.Context, req shared.DockerTestRequest) (*shared.DockerTestResponse, error) {
 	logger := activity.GetLogger(ctx)
 	startTime := time.Now()
-	
-	logger.Info("Starting Docker container tests", 
+
+	logger.Info("Starting Docker container tests",
 		"image", req.ImageName,
 		"tag", req.Tag)
 
@@ -82,14 +82,14 @@ func TestDockerContainer(ctx context.Context, req shared.DockerTestRequest) (*sh
 	containerName := fmt.Sprintf("test-%s-%d", req.Tag, time.Now().Unix())
 
 	// Start the container
-	runCmd := exec.CommandContext(ctx, "docker", "run", 
-		"-d", 
+	runCmd := exec.CommandContext(ctx, "docker", "run",
+		"-d",
 		"--name", containerName,
 		"-p", "8080",
 		imageTag)
-	
+
 	if output, err := runCmd.CombinedOutput(); err != nil {
-		logger.Error("Failed to start test container", 
+		logger.Error("Failed to start test container",
 			"error", err,
 			"output", string(output))
 		return nil, fmt.Errorf("failed to start container: %w", err)
@@ -120,15 +120,15 @@ func TestDockerContainer(ctx context.Context, req shared.DockerTestRequest) (*sh
 	time.Sleep(2 * time.Second)
 
 	// Run integration tests
-	testCmd := exec.CommandContext(ctx, "python3", 
-		"sample-app/tests/integration_test.py",
-		fmt.Sprintf("http://localhost:%s", port))
-	
+	testCmd := exec.CommandContext(ctx, "go", "test")
+	testCmd.Dir = "sample-app"
+	testCmd.Env = append(os.Environ(), fmt.Sprintf("BASE_URL=http://localhost:%s", port))
+
 	testOutput, err := testCmd.CombinedOutput()
 	passed := err == nil
 
 	duration := time.Since(startTime)
-	logger.Info("Docker tests completed", 
+	logger.Info("Docker tests completed",
 		"passed", passed,
 		"duration", duration,
 		"output", string(testOutput))
@@ -144,8 +144,8 @@ func TestDockerContainer(ctx context.Context, req shared.DockerTestRequest) (*sh
 func PushToRegistry(ctx context.Context, req shared.DockerPushRequest) (*shared.DockerPushResponse, error) {
 	logger := activity.GetLogger(ctx)
 	startTime := time.Now()
-	
-	logger.Info("Starting Docker push to registry", 
+
+	logger.Info("Starting Docker push to registry",
 		"image", req.ImageName,
 		"tag", req.Tag,
 		"registry", req.RegistryURL)
@@ -164,7 +164,7 @@ func PushToRegistry(ctx context.Context, req shared.DockerPushRequest) (*shared.
 	// Tag the image for the remote registry
 	tagCmd := exec.CommandContext(ctx, "docker", "tag", localTag, remoteTag)
 	if output, err := tagCmd.CombinedOutput(); err != nil {
-		logger.Error("Failed to tag image", 
+		logger.Error("Failed to tag image",
 			"error", err,
 			"output", string(output))
 		return nil, fmt.Errorf("failed to tag image: %w", err)
@@ -174,7 +174,7 @@ func PushToRegistry(ctx context.Context, req shared.DockerPushRequest) (*shared.
 	pushCmd := exec.CommandContext(ctx, "docker", "push", remoteTag)
 	pushOutput, err := pushCmd.CombinedOutput()
 	if err != nil {
-		logger.Error("Failed to push image", 
+		logger.Error("Failed to push image",
 			"error", err,
 			"output", string(pushOutput))
 		return nil, fmt.Errorf("failed to push image: %w\nOutput: %s", err, pushOutput)
@@ -182,9 +182,9 @@ func PushToRegistry(ctx context.Context, req shared.DockerPushRequest) (*shared.
 
 	// Extract digest from push output
 	digest := extractDigest(string(pushOutput))
-	
+
 	duration := time.Since(startTime)
-	logger.Info("Docker push completed successfully", 
+	logger.Info("Docker push completed successfully",
 		"digest", digest,
 		"duration", duration)
 

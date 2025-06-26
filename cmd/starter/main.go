@@ -20,6 +20,7 @@ func main() {
 		registryURL  = flag.String("registry", "", "Container registry URL")
 		environment  = flag.String("env", "staging", "Deployment environment: staging or production")
 		buildContext = flag.String("context", "./sample-app", "Docker build context path")
+		dockerfile   = flag.String("dockerfile", "Dockerfile", "Path to Dockerfile")
 	)
 	flag.Parse()
 
@@ -42,13 +43,13 @@ func main() {
 
 	switch *action {
 	case "create":
-		startPipeline(c, *imageName, *tag, *registryURL, *environment, *buildContext)
+		startPipeline(c, *imageName, *tag, *registryURL, *environment, *buildContext, *dockerfile)
 	default:
 		log.Fatalf("Unknown action: %s", *action)
 	}
 }
 
-func startPipeline(c client.Client, imageName, tag, registryURL, environment, buildContext string) {
+func startPipeline(c client.Client, imageName, tag, registryURL, environment, buildContext, dockerfile string) {
 	// Create pipeline request
 	request := shared.PipelineRequest{
 		ImageName:    imageName,
@@ -56,6 +57,7 @@ func startPipeline(c client.Client, imageName, tag, registryURL, environment, bu
 		RegistryURL:  registryURL,
 		Environment:  environment,
 		BuildContext: buildContext,
+		Dockerfile:   dockerfile,
 	}
 
 	// Generate workflow ID

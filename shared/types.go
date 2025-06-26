@@ -9,6 +9,7 @@ type PipelineRequest struct {
 	RegistryURL  string
 	Environment  string // staging or production
 	BuildContext string
+	Dockerfile   string
 }
 
 // Docker activity types
