@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: staging
+  labels:
+    app: demo-app
+    environment: staging
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo-app
+      environment: staging
+  template:
+    metadata:
+      labels:
+        app: demo-app
+        environment: staging
+    spec:
+      containers:
+      - name: demo-app
+        image: REGISTRY_URL/demo-app:TAG
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ENVIRONMENT
+          value: "staging"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
