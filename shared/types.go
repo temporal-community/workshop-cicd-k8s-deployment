@@ -37,9 +37,11 @@ type DockerTestResponse struct {
 }
 
 type DockerPushRequest struct {
-	ImageName   string
-	Tag         string
-	RegistryURL string
+	ImageName    string
+	Tag          string
+	RegistryURL  string
+	BuildContext string
+	Dockerfile   string
 }
 
 type DockerPushResponse struct {

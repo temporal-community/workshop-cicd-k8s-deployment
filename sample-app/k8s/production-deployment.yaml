@@ -21,6 +21,7 @@ spec:
       containers:
       - name: demo-app
         image: REGISTRY_URL/demo-app:TAG
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
         env:

@@ -75,9 +75,11 @@ func BasicPipelineWorkflow(ctx workflow.Context, request shared.PipelineRequest)
 	logger.Info("Starting Docker push")
 	var pushResp shared.DockerPushResponse
 	pushReq := shared.DockerPushRequest{
-		ImageName:   request.ImageName,
-		Tag:         request.Tag,
-		RegistryURL: request.RegistryURL,
+		ImageName:    request.ImageName,
+		Tag:          request.Tag,
+		RegistryURL:  request.RegistryURL,
+		BuildContext: request.BuildContext,
+		Dockerfile:   request.Dockerfile,
 	}
 
 	err = workflow.ExecuteActivity(ctx, activities.PushToRegistry, pushReq).Get(ctx, &pushResp)
@@ -156,9 +158,11 @@ func PipelineWithApprovalWorkflow(ctx workflow.Context, request shared.PipelineR
 	logger.Info("Starting Docker push")
 	var pushResp shared.DockerPushResponse
 	pushReq := shared.DockerPushRequest{
-		ImageName:   request.ImageName,
-		Tag:         request.Tag,
-		RegistryURL: request.RegistryURL,
+		ImageName:    request.ImageName,
+		Tag:          request.Tag,
+		RegistryURL:  request.RegistryURL,
+		BuildContext: request.BuildContext,
+		Dockerfile:   request.Dockerfile,
 	}
 
 	err = workflow.ExecuteActivity(ctx, activities.PushToRegistry, pushReq).Get(ctx, &pushResp)
@@ -170,14 +174,21 @@ func PipelineWithApprovalWorkflow(ctx workflow.Context, request shared.PipelineR
 	// Phase 2: Deploy to Staging
 	logger.Info("Phase 2: Deploying to staging environment")
 	
-	var k8sActivities *activities.KubernetesActivities
+	// Construct full image path with registry
+	var fullImagePath string
+	if request.RegistryURL != "" {
+		fullImagePath = fmt.Sprintf("%s/%s:%s", request.RegistryURL, request.ImageName, request.Tag)
+	} else {
+		fullImagePath = fmt.Sprintf("%s:%s", request.ImageName, request.Tag)
+	}
+	
 	deployReq := shared.DeployToKubernetesRequest{
-		ImageTag:    fmt.Sprintf("%s:%s", request.ImageName, request.Tag),
+		ImageTag:    fullImagePath,
 		Environment: "staging",
 	}
 
 	var deployResp shared.DeployToKubernetesResponse
-	err = workflow.ExecuteActivity(ctx, k8sActivities.DeployToKubernetes, deployReq).Get(ctx, &deployResp)
+	err = workflow.ExecuteActivity(ctx, "DeployToKubernetes", deployReq).Get(ctx, &deployResp)
 	if err != nil {
 		logger.Error("Staging deployment failed", "error", err)
 		return fmt.Errorf("staging deployment failed: %w", err)
@@ -191,15 +202,14 @@ func PipelineWithApprovalWorkflow(ctx workflow.Context, request shared.PipelineR
 		logger.Info("Phase 3: Requesting approval for production deployment")
 
 		// Send approval request
-		var approvalActivities *activities.ApprovalActivities
 		approvalReq := shared.SendApprovalRequestRequest{
 			Environment: "production",
-			ImageTag:    fmt.Sprintf("%s:%s", request.ImageName, request.Tag),
+			ImageTag:    fullImagePath,
 			StagingURL:  deployResp.DeploymentURL,
 		}
 
 		var approvalResp shared.SendApprovalRequestResponse
-		err = workflow.ExecuteActivity(ctx, approvalActivities.SendApprovalRequest, approvalReq).Get(ctx, &approvalResp)
+		err = workflow.ExecuteActivity(ctx, "SendApprovalRequest", approvalReq).Get(ctx, &approvalResp)
 		if err != nil {
 			logger.Error("Failed to send approval request", "error", err)
 			return fmt.Errorf("failed to send approval request: %w", err)
@@ -223,7 +233,7 @@ func PipelineWithApprovalWorkflow(ctx workflow.Context, request shared.PipelineR
 		}
 
 		var logResp shared.LogApprovalDecisionResponse
-		err = workflow.ExecuteActivity(ctx, approvalActivities.LogApprovalDecision, logReq).Get(ctx, &logResp)
+		err = workflow.ExecuteActivity(ctx, "LogApprovalDecision", logReq).Get(ctx, &logResp)
 		if err != nil {
 			logger.Error("Failed to log approval decision", "error", err)
 		}
@@ -232,13 +242,13 @@ func PipelineWithApprovalWorkflow(ctx workflow.Context, request shared.PipelineR
 		notifyReq := shared.SendApprovalNotificationRequest{
 			Approved:    approvalSignal.Approved,
 			Environment: "production",
-			ImageTag:    fmt.Sprintf("%s:%s", request.ImageName, request.Tag),
+			ImageTag:    fullImagePath,
 			Approver:    approvalSignal.Approver,
 			Reason:      approvalSignal.Reason,
 		}
 
 		var notifyResp shared.SendApprovalNotificationResponse
-		err = workflow.ExecuteActivity(ctx, approvalActivities.SendApprovalNotification, notifyReq).Get(ctx, &notifyResp)
+		err = workflow.ExecuteActivity(ctx, "SendApprovalNotification", notifyReq).Get(ctx, &notifyResp)
 		if err != nil {
 			logger.Error("Failed to send approval notification", "error", err)
 		}
@@ -256,12 +266,12 @@ func PipelineWithApprovalWorkflow(ctx workflow.Context, request shared.PipelineR
 		logger.Info("Phase 4: Deploying to production environment")
 		
 		prodDeployReq := shared.DeployToKubernetesRequest{
-			ImageTag:    fmt.Sprintf("%s:%s", request.ImageName, request.Tag),
+			ImageTag:    fullImagePath,
 			Environment: "production",
 		}
 
 		var prodDeployResp shared.DeployToKubernetesResponse
-		err = workflow.ExecuteActivity(ctx, k8sActivities.DeployToKubernetes, prodDeployReq).Get(ctx, &prodDeployResp)
+		err = workflow.ExecuteActivity(ctx, "DeployToKubernetes", prodDeployReq).Get(ctx, &prodDeployResp)
 		if err != nil {
 			logger.Error("Production deployment failed", "error", err)
 			return fmt.Errorf("production deployment failed: %w", err)

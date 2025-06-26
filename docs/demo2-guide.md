@@ -214,10 +214,11 @@ go run cmd/starter/main.go \
 - Check that workflow is still running (not completed)
 - Verify signal name matches ("approval")
 
-### Deployment Simulation
-- Activities simulate deployments (no real K8s interaction)
-- In production, replace with actual K8s client calls
-- Add your registry URL for real container pushes
+### Real Kubernetes Deployments
+- Activities now perform actual Kubernetes deployments using kubectl
+- Creates real deployments and services in the cluster
+- Returns actual service URLs (LoadBalancer or NodePort)
+- Requires kubectl access to your cluster
 
 ### Activity Timeouts
 - Default timeout is 10 minutes per activity

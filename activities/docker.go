@@ -33,10 +33,14 @@ func BuildDockerImage(ctx context.Context, req shared.DockerBuildRequest) (*shar
 	// Construct the image tag
 	imageTag := fmt.Sprintf("%s:%s", req.ImageName, req.Tag)
 
-	// Build the Docker image
+	// Build the Docker image for local testing (current platform only)
+	// Multi-arch build will happen during push phase
+	logger.Info("Building image for local testing")
+	
 	cmd := exec.CommandContext(ctx, "docker", "buildx", "build",
 		"-t", imageTag,
 		"-f", req.Dockerfile,
+		"--load", // Load for local testing
 		req.BuildContext)
 
 	output, err := cmd.CombinedOutput()
@@ -158,26 +162,94 @@ func PushToRegistry(ctx context.Context, req shared.DockerPushRequest) (*shared.
 		}
 	}
 
-	localTag := fmt.Sprintf("%s:%s", req.ImageName, req.Tag)
 	remoteTag := shared.FormatImageTag(req.RegistryURL, req.ImageName, req.Tag)
 
-	// Tag the image for the remote registry
-	tagCmd := exec.CommandContext(ctx, "docker", "tag", localTag, remoteTag)
-	if output, err := tagCmd.CombinedOutput(); err != nil {
-		logger.Error("Failed to tag image",
-			"error", err,
-			"output", string(output))
-		return nil, fmt.Errorf("failed to tag image: %w", err)
-	}
+	// Build and push multi-architecture image directly to registry
+	logger.Info("Building and pushing multi-architecture image", 
+		"platforms", "linux/amd64,linux/arm64",
+		"remoteTag", remoteTag)
 
-	// Push to registry
-	pushCmd := exec.CommandContext(ctx, "docker", "push", remoteTag)
-	pushOutput, err := pushCmd.CombinedOutput()
+	// Ensure we have a multi-platform capable builder
+	builderName := "multiarch-builder"
+	
+	// Remove existing builder first to avoid conflicts
+	removeBuilderCmd := exec.CommandContext(ctx, "docker", "buildx", "rm", builderName)
+	removeBuilderCmd.Run() // Ignore errors if builder doesn't exist
+	
+	// Create fresh builder
+	createBuilderCmd := exec.CommandContext(ctx, "docker", "buildx", "create", 
+		"--name", builderName, 
+		"--driver", "docker-container",
+		"--use")
+	createOutput, createErr := createBuilderCmd.CombinedOutput()
+	
+	if createErr != nil {
+		logger.Error("Failed to create multi-arch builder", 
+			"error", createErr,
+			"output", string(createOutput))
+		return nil, fmt.Errorf("failed to create multi-arch builder: %w", createErr)
+	}
+	
+	logger.Info("Created fresh multi-arch builder", "name", builderName)
+
+	// Rebuild for multi-architecture and push directly to registry
+	// Use a unique tag to avoid conflicts with existing untagged images
+	timestampTag := fmt.Sprintf("%s-%d", req.Tag, time.Now().Unix())
+	multiArchTag := shared.FormatImageTag(req.RegistryURL, req.ImageName, timestampTag)
+	
+	buildCmd := exec.CommandContext(ctx, "docker", "buildx", "build",
+		"--platform", "linux/amd64,linux/arm64",
+		"-t", multiArchTag,
+		"-f", req.Dockerfile,
+		"--no-cache", // Force clean build to ensure CGO_ENABLED=0 fix is applied
+		"--push", // Push directly to registry
+		req.BuildContext)
+
+	pushOutput, err := buildCmd.CombinedOutput()
 	if err != nil {
-		logger.Error("Failed to push image",
+		logger.Warn("Multi-arch build failed, falling back to single-arch build and push",
 			"error", err,
 			"output", string(pushOutput))
-		return nil, fmt.Errorf("failed to push image: %w\nOutput: %s", err, pushOutput)
+		
+		// Fallback: Tag and push single-arch image
+		localTag := fmt.Sprintf("%s:%s", req.ImageName, req.Tag)
+		
+		// Tag the image for the remote registry
+		tagCmd := exec.CommandContext(ctx, "docker", "tag", localTag, remoteTag)
+		if tagOutput, tagErr := tagCmd.CombinedOutput(); tagErr != nil {
+			logger.Error("Failed to tag image for fallback",
+				"error", tagErr,
+				"output", string(tagOutput))
+			return nil, fmt.Errorf("failed to tag image: %w", tagErr)
+		}
+
+		// Push single-arch image
+		fallbackPushCmd := exec.CommandContext(ctx, "docker", "push", remoteTag)
+		fallbackOutput, fallbackErr := fallbackPushCmd.CombinedOutput()
+		if fallbackErr != nil {
+			logger.Error("Fallback push also failed",
+				"error", fallbackErr,
+				"output", string(fallbackOutput))
+			return nil, fmt.Errorf("failed to push image (both multi-arch and fallback failed): %w\nOutput: %s", fallbackErr, fallbackOutput)
+		}
+		
+		logger.Info("Successfully pushed single-arch image as fallback")
+		pushOutput = fallbackOutput
+	} else {
+		// Multi-arch build succeeded, now tag it with the original tag
+		logger.Info("Multi-arch build succeeded, creating additional tag", "originalTag", remoteTag)
+		
+		// Use buildx imagetools to create an additional tag pointing to the same manifest
+		tagCmd := exec.CommandContext(ctx, "docker", "buildx", "imagetools", "create", 
+			"-t", remoteTag, 
+			multiArchTag)
+		if tagOutput, tagErr := tagCmd.CombinedOutput(); tagErr != nil {
+			logger.Warn("Failed to create additional tag, but multi-arch push succeeded",
+				"error", tagErr,
+				"output", string(tagOutput))
+		} else {
+			logger.Info("Successfully created additional tag", "tag", remoteTag)
+		}
 	}
 
 	// Extract digest from push output
