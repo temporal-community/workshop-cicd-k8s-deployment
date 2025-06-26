@@ -238,10 +238,27 @@ func deployToProduction(ctx workflow.Context, logger log.Logger, fullImagePath, 
 		// Wait for either validation or timer
 		selector.Select(ctx)
 
-		// Log what happened
+		// Handle what happened
 		if timerExpired && !validationReceived {
-			logger.Info("Timer completed naturally - no validation signal received")
-			logger.Info("In a real scenario, this could trigger alerts, notifications, or other actions")
+			logger.Info("Timer expired - no validation signal received, initiating rollback")
+			
+			// Execute rollback activity
+			rollbackReq := shared.RollbackDeploymentRequest{
+				Environment: "production",
+				Reason:      "Validation timeout after 30 seconds",
+				Timestamp:   workflow.Now(ctx),
+			}
+			
+			var rollbackResp shared.RollbackDeploymentResponse
+			err := workflow.ExecuteActivity(ctx, "RollbackDeployment", rollbackReq).Get(ctx, &rollbackResp)
+			if err != nil {
+				logger.Error("Failed to rollback deployment", "error", err)
+				return fmt.Errorf("rollback failed: %w", err)
+			}
+			
+			logger.Info("Rollback completed successfully", 
+				"success", rollbackResp.Success, 
+				"message", rollbackResp.Message)
 		} else if validationReceived {
 			logger.Info("Timer was canceled by validation signal - demonstrating signal handling")
 		}
