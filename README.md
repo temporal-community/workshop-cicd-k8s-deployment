@@ -130,7 +130,7 @@ go run workers/main.go
 go run workers/main.go
 
 # Terminal 2: TypeScript worker (approvals)
-cd typescript-activities && npm start
+cd typescript-activities && && npm run build && npm start
 
 # Terminal 3: Python worker (Kubernetes)
 cd python-activities && uv run python src/worker.py
