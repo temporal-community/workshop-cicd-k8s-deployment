@@ -123,8 +123,7 @@ func CICDPipelineWorkflow(ctx workflow.Context, request shared.PipelineRequest) 
 
 		// Phase 3: Production deployment with approval (if production environment)
 		if request.Environment == "production" {
-			// Always include durable timers for production deployments
-			err = deployToProduction(ctx, logger, fullImagePath, deployResp.DeploymentURL, true)
+			err = deployToProduction(ctx, logger, fullImagePath, deployResp.DeploymentURL)
 			if err != nil {
 				return err
 			}
@@ -137,8 +136,8 @@ func CICDPipelineWorkflow(ctx workflow.Context, request shared.PipelineRequest) 
 	return nil
 }
 
-// deployToProduction handles the production deployment with approval and optionally validation timers
-func deployToProduction(ctx workflow.Context, logger log.Logger, fullImagePath, stagingURL string, includeDurableTimers bool) error {
+// deployToProduction handles the production deployment with approval
+func deployToProduction(ctx workflow.Context, logger log.Logger, fullImagePath, stagingURL string) error {
 	logger.Info("Phase 3: Requesting approval for production deployment")
 
 	// Send approval request
@@ -200,94 +199,6 @@ func deployToProduction(ctx workflow.Context, logger log.Logger, fullImagePath, 
 	}
 
 	logger.Info("Production deployment successful", "url", prodDeployResp.DeploymentURL)
-
-	// Phase 5: Automatic Rollback Timer with Validation (only for Part 3)
-	if includeDurableTimers {
-		logger.Info("Phase 5: Starting durable timer demonstration (30 seconds)")
-		logger.Info("This timer demonstrates Temporal's durability - it will survive worker crashes and continue exactly where it left off.")
-
-		// Log validation instructions
-		validationMessage := fmt.Sprintf(`
-==================================================
-VALIDATION REQUIRED - Production Deployment Timer
-==================================================
-Production deployment is live - validation timer started (30 seconds)
-Please validate the deployment within 30 seconds to prevent automatic rollback
-
-To validate deployment:
-  go run cmd/starter/main.go -action=validate -workflow=%s -validator="your-name" -reason="validation-reason"
-
-To check deployment status:
-  kubectl get deployments -n production
-
-To check workflow status:
-  go run cmd/starter/main.go -action=status -workflow=%s
-==================================================
-`,
-			workflow.GetInfo(ctx).WorkflowExecution.ID,
-			workflow.GetInfo(ctx).WorkflowExecution.ID)
-
-		logger.Info(validationMessage)
-
-		// Start 30-second timer to demonstrate durability
-		timer := workflow.NewTimer(ctx, 30*time.Second)
-
-		// Create validation signal channel
-		validationChannel := workflow.GetSignalChannel(ctx, "validation")
-
-		// Use selector to wait for either validation signal OR timer expiration
-		selector := workflow.NewSelector(ctx)
-		var timerExpired bool
-		var validationReceived bool
-
-		// Add validation signal receiver
-		selector.AddReceive(validationChannel, func(c workflow.ReceiveChannel, more bool) {
-			var validation shared.ValidationSignal
-			c.Receive(ctx, &validation)
-
-			logger.Info("Validation signal received - timer will be canceled",
-				"validated", validation.Validated,
-				"validator", validation.Validator,
-				"reason", validation.Reason)
-			validationReceived = true
-		})
-
-		// Add timer receiver
-		selector.AddFuture(timer, func(f workflow.Future) {
-			timerExpired = true
-			logger.Info("Timer expired after 30 seconds - demonstrating durable timer completion")
-		})
-
-		// Wait for either validation or timer
-		selector.Select(ctx)
-
-		// Handle what happened
-		if timerExpired && !validationReceived {
-			logger.Info("Timer expired - no validation signal received, initiating rollback")
-
-			// Execute rollback activity
-			rollbackReq := shared.RollbackDeploymentRequest{
-				Environment: "production",
-				Reason:      "Validation timeout after 30 seconds",
-				Timestamp:   workflow.Now(ctx),
-			}
-
-			var rollbackResp shared.RollbackDeploymentResponse
-			err := workflow.ExecuteActivity(ctx, "RollbackDeployment", rollbackReq).Get(ctx, &rollbackResp)
-			if err != nil {
-				logger.Error("Failed to rollback deployment", "error", err)
-				return fmt.Errorf("rollback failed: %w", err)
-			}
-
-			logger.Info("Rollback completed successfully",
-				"success", rollbackResp.Success,
-				"message", rollbackResp.Message)
-		} else if validationReceived {
-			logger.Info("Timer was canceled by validation signal - demonstrating signal handling")
-		}
-
-		logger.Info("Durable timer demonstration completed")
-	}
 
 	return nil
 }
