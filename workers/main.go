@@ -35,14 +35,12 @@ func main() {
 	k8sActivities := &activities.KubernetesActivities{}
 	w.RegisterActivity(k8sActivities.DeployToKubernetes)
 	w.RegisterActivity(k8sActivities.CheckDeploymentStatus)
-	w.RegisterActivity(k8sActivities.GetServiceURL)
 
 	// Register Approval activities
 	approvalActivities := &activities.ApprovalActivities{}
 	w.RegisterActivity(approvalActivities.SendApprovalRequest)
 	w.RegisterActivity(approvalActivities.LogApprovalDecision)
 	w.RegisterActivity(approvalActivities.SendApprovalNotification)
-
 
 	log.Println("Starting Temporal worker for CI/CD Pipeline")
 	log.Println("Worker listening on task queue: cicd-task-queue")
