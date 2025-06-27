@@ -31,25 +31,12 @@ func main() {
 	w.RegisterActivity(activities.TestDockerContainer)
 	w.RegisterActivity(activities.PushToRegistry)
 
-	// Register Kubernetes activities
-	k8sActivities := &activities.KubernetesActivities{}
-	w.RegisterActivity(k8sActivities.DeployToKubernetes)
-	w.RegisterActivity(k8sActivities.CheckDeploymentStatus)
-
-	// Register Approval activities
-	approvalActivities := &activities.ApprovalActivities{}
-	w.RegisterActivity(approvalActivities.SendApprovalRequest)
-	w.RegisterActivity(approvalActivities.LogApprovalDecision)
-	w.RegisterActivity(approvalActivities.SendApprovalNotification)
-
 	log.Println("Starting Temporal worker for CI/CD Pipeline")
 	log.Println("Worker listening on task queue: cicd-task-queue")
 	log.Println("Registered workflows:")
-	log.Println("  - CICDPipelineWorkflow (human-in-the-loop workflow)")
+	log.Println("  - CICDPipelineWorkflow")
 	log.Println("Registered activities:")
 	log.Println("  - Docker: Build, Test, Push")
-	log.Println("  - Kubernetes: Deploy, CheckStatus, GetServiceURL")
-	log.Println("  - Approval: SendRequest, LogDecision, SendNotification")
 
 	// Start worker
 	err = w.Run(worker.InterruptCh())
