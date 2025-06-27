@@ -24,8 +24,7 @@ func main() {
 	w := worker.New(c, "cicd-task-queue", worker.Options{})
 
 	// Register workflows
-	w.RegisterWorkflow(workflows.BasicPipelineWorkflow)
-	w.RegisterWorkflow(workflows.PipelineWithApprovalWorkflow)
+	w.RegisterWorkflow(workflows.CICDPipelineWorkflow)
 
 	// Register Docker activities
 	w.RegisterActivity(activities.BuildDockerImage)
@@ -36,8 +35,6 @@ func main() {
 	k8sActivities := &activities.KubernetesActivities{}
 	w.RegisterActivity(k8sActivities.DeployToKubernetes)
 	w.RegisterActivity(k8sActivities.CheckDeploymentStatus)
-	w.RegisterActivity(k8sActivities.RollbackDeployment)
-	w.RegisterActivity(k8sActivities.GetServiceURL)
 
 	// Register Approval activities
 	approvalActivities := &activities.ApprovalActivities{}
@@ -45,14 +42,13 @@ func main() {
 	w.RegisterActivity(approvalActivities.LogApprovalDecision)
 	w.RegisterActivity(approvalActivities.SendApprovalNotification)
 
-	log.Println("Starting Temporal worker for Demo 2 - Human-in-the-Loop Pipeline")
+	log.Println("Starting Temporal worker for CI/CD Pipeline")
 	log.Println("Worker listening on task queue: cicd-task-queue")
 	log.Println("Registered workflows:")
-	log.Println("  - BasicPipelineWorkflow")
-	log.Println("  - PipelineWithApprovalWorkflow")
+	log.Println("  - CICDPipelineWorkflow (human-in-the-loop workflow)")
 	log.Println("Registered activities:")
 	log.Println("  - Docker: Build, Test, Push")
-	log.Println("  - Kubernetes: Deploy, CheckStatus, Rollback, GetServiceURL")
+	log.Println("  - Kubernetes: Deploy, CheckStatus, GetServiceURL")
 	log.Println("  - Approval: SendRequest, LogDecision, SendNotification")
 
 	// Start worker

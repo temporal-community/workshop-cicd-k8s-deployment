@@ -31,9 +31,9 @@ type DockerTestRequest struct {
 }
 
 type DockerTestResponse struct {
-	Passed    bool
-	TestTime  time.Duration
-	Output    string
+	Passed   bool
+	TestTime time.Duration
+	Output   string
 }
 
 type DockerPushRequest struct {
@@ -66,21 +66,21 @@ type KubernetesDeployResponse struct {
 
 // Approval types
 type ApprovalRequest struct {
-	WorkflowID   string
-	RunID        string
-	Environment  string
-	ImageName    string
-	Tag          string
-	StagingURL   string
-	RequestedBy  string
-	RequestedAt  time.Time
+	WorkflowID  string
+	RunID       string
+	Environment string
+	ImageName   string
+	Tag         string
+	StagingURL  string
+	RequestedBy string
+	RequestedAt time.Time
 }
 
 type ApprovalResponse struct {
-	Approved    bool
-	ApprovedBy  string
-	ApprovedAt  time.Time
-	Comments    string
+	Approved   bool
+	ApprovedBy string
+	ApprovedAt time.Time
+	Comments   string
 }
 
 // Monitoring types
@@ -90,10 +90,10 @@ type HealthCheckRequest struct {
 }
 
 type HealthCheckResponse struct {
-	Healthy       bool
-	ResponseTime  time.Duration
-	StatusCode    int
-	Error         string
+	Healthy      bool
+	ResponseTime time.Duration
+	StatusCode   int
+	Error        string
 }
 
 type RollbackRequest struct {
@@ -136,27 +136,6 @@ type CheckDeploymentStatusResponse struct {
 	Replicas      int32
 	ReadyReplicas int32
 	Message       string
-}
-
-type RollbackDeploymentRequest struct {
-	Environment string
-	Reason      string
-}
-
-type RollbackDeploymentResponse struct {
-	Success bool
-	Message string
-}
-
-type GetServiceURLRequest struct {
-	Environment string
-	ServiceName string
-}
-
-type GetServiceURLResponse struct {
-	URL     string
-	Ready   bool
-	Message string
 }
 
 // Additional Approval activity types

@@ -94,13 +94,8 @@ func startPipeline(c client.Client, imageName, tag, registryURL, environment, bu
 		TaskQueue: "cicd-task-queue",
 	}
 
-	// Choose workflow based on environment
-	var workflowFunc interface{}
-	if environment == "production" {
-		workflowFunc = workflows.PipelineWithApprovalWorkflow
-	} else {
-		workflowFunc = workflows.BasicPipelineWorkflow
-	}
+	// Use the unified CICDPipelineWorkflow with all features
+	workflowFunc := workflows.CICDPipelineWorkflow
 
 	// Start workflow
 	we, err := c.ExecuteWorkflow(context.Background(), workflowOptions, workflowFunc, request)
@@ -154,6 +149,7 @@ func sendApprovalSignal(c client.Client, workflowID string, approved bool, appro
 		fmt.Printf("  Reason: %s\n", reason)
 	}
 }
+
 
 func getWorkflowStatus(c client.Client, workflowID string) {
 	// Get workflow description

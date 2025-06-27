@@ -14,7 +14,12 @@ func main() {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		hostname, err := os.Hostname()
+		if err != nil {
+			hostname = "unknown"
+		}
 		fmt.Fprintf(w, "Hello World from Temporal CI/CD Workshop!\n")
+		fmt.Fprintf(w, "Running on: %s\n", hostname)
 	})
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
