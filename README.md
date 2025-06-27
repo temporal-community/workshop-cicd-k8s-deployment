@@ -62,6 +62,50 @@ Each demo is contained in its own branch:
 - **docs/** - Demo-specific guides in each branch
 - **sample-app/** - Simple Go application used throughout demos
 
+## CI/CD Pipeline Flow
+
+```mermaid
+flowchart LR
+    A[Start Pipeline] --> B[Build Docker Image]
+    B --> C[Test Container]
+    C --> D[Push to Registry]
+    
+    D --> E{Environment?}
+    E -->|staging| F[Deploy to Staging]
+    E -->|production| F
+    
+    F --> G{Environment == production?}
+    G -->|No| Z[Pipeline Complete]
+    G -->|Yes| H[Send Approval Request]
+    
+    H --> I[Wait for Approval Signal]
+    I --> J{Approved?}
+    J -->|No| K[Pipeline Rejected]
+    J -->|Yes| L[Deploy to Production]
+    
+    L --> M[Start 30s Validation Timer]
+    M --> N{Validation Signal or Timer?}
+    N -->|Validation Signal| O[Cancel Timer - Success]
+    N -->|Timer Expires| P[Auto Rollback]
+    
+    O --> Z
+    P --> Q[Rollback Complete]
+    Q --> Z
+    
+    %% Styling
+    classDef startEnd fill:#2563eb,stroke:#1e40af,stroke-width:2px,color:#ffffff
+    classDef process fill:#7c3aed,stroke:#5b21b6,stroke-width:2px,color:#ffffff
+    classDef decision fill:#ea580c,stroke:#c2410c,stroke-width:2px,color:#ffffff
+    classDef success fill:#16a34a,stroke:#15803d,stroke-width:2px,color:#ffffff
+    classDef failure fill:#dc2626,stroke:#b91c1c,stroke-width:2px,color:#ffffff
+    
+    class A,Z startEnd
+    class B,C,D,F,H,L,M process
+    class E,G,J,N decision
+    class O success
+    class K,P,Q failure
+```
+
 ## Key Concepts Demonstrated
 
 - **Reliability**: Workflows survive crashes and resume exactly where they left off
