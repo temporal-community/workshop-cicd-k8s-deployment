@@ -19,6 +19,26 @@ This Part 1 implementation demonstrates a **CI/CD pipeline** that showcases core
 - **Deterministic Execution**: Workflows that can be replayed exactly
 - **Temporal UI**: Visual workflow execution tracking
 
+## CI/CD Pipeline Flow
+
+```mermaid
+flowchart LR
+    A[Start Pipeline] --> B[Build Docker Image]
+    B --> C[Test Docker Image]
+    C --> D[Push to Registry]
+    D --> E[Pipeline Complete]
+
+    
+    %% Styling
+    classDef startEnd fill:#2563eb,stroke:#1e40af,stroke-width:2px,color:#ffffff
+    classDef process fill:#7c3aed,stroke:#5b21b6,stroke-width:2px,color:#ffffff
+    
+    class A,E startEnd
+    class B,C,D process
+
+
+```
+
 ## Prerequisites
 
 - **Docker Desktop** installed and running
